@@ -1,5 +1,11 @@
 # SharpView
-.NET port of [PowerView](https://github.com/PowerShellMafia/PowerSploit/blob/dev/Recon/PowerView.ps1)
+.NET port of [PowerView](https://github.com/PowerShellMafia/PowerSploit/blob/dev/Recon/PowerView.ps1)  
+Forked from [the original SharpView repo](https://github.com/tevora-threat/SharpView)
+
+### Notable changes:
+- Removed PCRE.NET usage (and thus the IoC of a new folder and DLL in %TEMP%)
+- Implemented pull requests from original repo
+- Combined some changes from other public repos
 
 #### Usage:
 ```
@@ -138,6 +144,9 @@ Get-DomainPolicyData
 Get-DomainPolicy
 Get-DomainGPOLocalGroup
 Get-NetGPOGroup
+Get-ExecutionGroups
+Find-EntityHasFullControl
+Get-RemoteSessions
 ```
 
 Blog [Here](https://www.tevora.com/a-sharpview-and-more-aggressor)
