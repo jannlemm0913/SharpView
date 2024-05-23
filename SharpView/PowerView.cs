@@ -5461,7 +5461,7 @@ namespace SharpView
                     TargetSIDs.AddRange(sid);
                 }
                 TargetObjectSID = TargetSIDs;
-                if (TargetSIDs == null || TargetSIDs.Length == 0)
+                if (TargetSIDs == null || TargetSIDs.Count == 0)
                 {
                     throw new Exception($@"[Get-DomainGPOUserLocalGroupMapping] Unable to retrieve SID for identity '{args.Identity}'");
                 }
@@ -5687,7 +5687,7 @@ namespace SharpView
                         foreach (LDAPProperty ou in ous)
                         {
                             var matches = ou.gplink.GetRegexGroups(@"(\{){0,1}[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}(\}){0,1}");
-                            foreach (var match in matches)
+                            foreach (Group match in matches)
                             {
                                 GPOGuids.Add(match.Value);
                             }
@@ -5703,7 +5703,7 @@ namespace SharpView
                         foreach (LDAPProperty ou in ous)
                         {
                             var matches = ou.gplink.GetRegexGroups(@"(\{){0,1}[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}(\}){0,1}");
-                            foreach (var match in matches)
+                            foreach (Group match in matches)
                             {
                                 GPOGuids.Add(match.Value);
                             }
