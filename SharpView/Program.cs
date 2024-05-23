@@ -7,7 +7,9 @@ using System.ComponentModel;
 using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Security;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace SharpView
@@ -415,9 +417,19 @@ namespace SharpView
                 case "get-netgpogroup":
                     methodName = "Get_NetGPOGroup";
                     break;
+                // Custom Commands
+                case "get-executiongroups":
+                    methodName = "Get_ExecutionGroups";
+                    break;
+                case "find-entityhasfullcontrol":
+                    methodName = "Find_EntityHasFullControl";
+                    break;
+                case "get-remotesessions":
+                    methodName = "Get_RemoteSessions";
+                    break;
                 default:
                     Console.WriteLine("No Valid Method entered");
-                    Environment.Exit(0);
+                    //Environment.Exit(0);
                     break;
             }
 
@@ -430,7 +442,7 @@ namespace SharpView
             if(args.Length > 1 && (args[1].ToLower() == "-help" || args[1].ToLower() == "help"))
             {
                 Logger.Write_Output(Environment.NewLine + GetMethodHelp(method));
-                Environment.Exit(0);
+               return;
             }
             ParameterInfo[] parameters = method.GetParameters();
             if (parameters == null || parameters.Length != 1)
@@ -453,7 +465,10 @@ namespace SharpView
                     if (argName.StartsWith("-"))
                     {
                         argName = argName.TrimStart(new[] { '-' });
-                        PropertyInfo pinfo = paramType.GetProperty(argName);
+                        //PropertyInfo pinfo = paramType.GetProperty(argName);
+                        PropertyInfo pinfo = parameters[0].ParameterType
+                            .GetProperties(BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance)
+                            .FirstOrDefault(p => String.Equals(p.Name, argName, StringComparison.OrdinalIgnoreCase));
                         if (pinfo == null)
                             continue;
                         i++;
@@ -467,6 +482,13 @@ namespace SharpView
                                 if (pinfo.PropertyType.FullName == "System.Boolean")
                                     strValue = "true";
                             }
+
+                            if (pinfo.PropertyType.FullName == "System.Security.SecureString")
+                            {
+                                pinfo.SetValue(argObject, ConvertToSecureString(strValue));
+                                continue;
+                            }
+
                             TypeConverter tc = TypeDescriptor.GetConverter(pinfo.PropertyType);
                             if (tc is BooleanConverter)
                             {
@@ -480,8 +502,26 @@ namespace SharpView
                                 tc = new StringArrayConverter();
                             else if (pinfo.PropertyType.FullName == "System.Net.NetworkCredential")
                                 tc = new NetworkCredentialConverter();
-                            var argValue = tc.ConvertFromString(strValue);
-                            pinfo.SetValue(argObject, argValue);
+                            if (pinfo.PropertyType.FullName.Contains("Dictionary"))
+                            {
+                                Dictionary<string, object> argDict = new Dictionary<string, object>();
+
+                                string pattern = "(\\w+)[=]([\\w\\s'\",.]+)(;)?";
+                                var matches = Regex.Matches(strValue, pattern);
+                                foreach (Match m in matches)
+                                {
+                                    string key = m.Groups[1].Value;
+                                    string value = m.Groups[2].Value;
+                                    argDict.Add(key, value);
+                                }
+
+                                pinfo.SetValue(argObject, argDict);
+                            }
+                            else
+                            {
+                                var argValue = tc.ConvertFromString(strValue);
+                                pinfo.SetValue(argObject, argValue);
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -493,6 +533,20 @@ namespace SharpView
             // Leaving out try catch block to see errors for now
             var ret = method.Invoke(null, new[] { argObject });
             ObjectDumper.Write(ret);
+        }
+
+        static SecureString ConvertToSecureString(string password)
+        {
+            if (password == null)
+                throw new ArgumentNullException("password");
+
+            var securePassword = new SecureString();
+
+            foreach (char c in password)
+                securePassword.AppendChar(c);
+
+            securePassword.MakeReadOnly();
+            return securePassword;
         }
 
         static string GetMethodHelp(MethodInfo method)

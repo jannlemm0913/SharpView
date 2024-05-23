@@ -29,6 +29,151 @@ namespace SharpView
             Logger.Write_Verbose("Called TestMethod!");
         }
 
+        // new methods
+        public static IEnumerable<object> Get_ExecutionGroups(Args_Get_ExecutionGroups argsExecutionGroups = null)
+        {
+            IEnumerable<object> result = null;
+
+            Args_Get_DomainComputer argsComputers = new Args_Get_DomainComputer { };
+            IEnumerable<object> computers = Get_NetComputer(argsComputers);
+
+            List<string> computersGroup = new List<string>();
+            foreach (LDAPProperty computer in computers)
+            {
+                computersGroup.Add(computer.name);
+            }
+
+            Args_Get_NetLocalGroupMember argsGroups = new Args_Get_NetLocalGroupMember { };
+            argsGroups.ComputerName = computersGroup.ToArray();
+            argsGroups.GroupName = argsExecutionGroups.GroupName;
+            IEnumerable<object> members = Get_NetLocalGroupMember(argsGroups);
+
+            var ExecutionGroupMembers = new List<object>();
+            if (argsExecutionGroups.MemberName != null)
+            {
+                foreach (LocalGroupMemberAPI member in members)
+                {
+                    if (argsExecutionGroups.MemberName.Equals(member.MemberName))
+                    {
+                        ExecutionGroupMembers.Add(member);
+                    }
+                }
+                result = ExecutionGroupMembers;
+            }
+            else
+            {
+                result = members;
+            }
+
+            return result;
+        }
+
+        public static IEnumerable<object> Find_EntityHasFullControl(Args_Find_EntityHasFullControl argsEntityFullControl = null)
+        {
+            IEnumerable<object> result = null;
+
+            Args_Find_InterestingDomainAcl argsDomainAcl = new Args_Find_InterestingDomainAcl { };
+            argsDomainAcl.Domain = argsEntityFullControl.Domain;
+            argsDomainAcl.DomainName = argsEntityFullControl.DomainName;
+            argsDomainAcl.Name = argsEntityFullControl.Name;
+            argsDomainAcl.ResolveGUIDs = argsEntityFullControl.ResolveGUIDs;
+            argsDomainAcl.RightsFilter = argsEntityFullControl.RightsFilter;
+            argsDomainAcl.LDAPFilter = argsEntityFullControl.LDAPFilter;
+            argsDomainAcl.Filter = argsEntityFullControl.Filter;
+            argsDomainAcl.SearchBase = argsEntityFullControl.SearchBase;
+            argsDomainAcl.ADSPath = argsEntityFullControl.ADSPath;
+            argsDomainAcl.Server = argsEntityFullControl.Server;
+            argsDomainAcl.DomainController = argsEntityFullControl.DomainController;
+            argsDomainAcl.SearchScope = argsEntityFullControl.SearchScope;
+            argsDomainAcl.ResultPageSize = argsEntityFullControl.ResultPageSize;
+            argsDomainAcl.ServerTimeLimit = argsEntityFullControl.ServerTimeLimit;
+            argsDomainAcl.Tombstone = argsEntityFullControl.Tombstone;
+            argsDomainAcl.Credential = argsEntityFullControl.Credential;
+            IEnumerable<object> acls = Find_InterestingDomainAcl(argsDomainAcl);
+
+            var EntitiesWithFullControl = new List<object>();
+            if (argsEntityFullControl.Entity != null)
+            {
+                foreach (ACL acl in acls)
+                {
+                    if (argsEntityFullControl.Entity.Equals(acl.IdentityReferenceName))
+                    {
+                        EntitiesWithFullControl.Add(acl);
+                    }
+                }
+                result = EntitiesWithFullControl;
+            }
+            else
+            {
+                result = acls;
+            }
+
+            return result;
+        }
+
+        public static IEnumerable<object> Get_RemoteSessions(Args_Get_RemoteSessions argsRemoteSessions = null)
+        {
+            IEnumerable<object> result = null;
+
+            Args_Get_DomainComputer argsComputers = new Args_Get_DomainComputer { };
+            argsComputers.OperatingSystem = argsRemoteSessions.OperatingSystem;
+            argsComputers.ServicePack = argsRemoteSessions.ServicePack;
+            argsComputers.Unconstrained = argsRemoteSessions.Unconstrained;
+            argsComputers.TrustedToAuth = argsRemoteSessions.TrustedToAuth;
+            argsComputers.Ping = argsRemoteSessions.Ping;
+            argsComputers.Domain = argsRemoteSessions.Domain;
+            argsComputers.SPN = argsRemoteSessions.SPN;
+            IEnumerable<object> computers = Get_NetComputer(argsComputers);
+
+            List<string> computersGroup = new List<string>();
+            foreach (LDAPProperty computer in computers)
+            {
+                computersGroup.Add(computer.name);
+            }
+
+            Args_Get_NetRDPSession argsSession = new Args_Get_NetRDPSession { };
+            argsSession.ComputerName = computersGroup.ToArray();
+            IEnumerable<object> sessions = Get_NetRDPSession(argsSession);
+
+            var ExecutionGroupMembers = new List<object>();
+
+            if (
+                argsRemoteSessions.UserName == null &&
+                argsRemoteSessions.SessionName == null &&
+                argsRemoteSessions.SessionState == null &&
+                argsRemoteSessions.SessionID == null
+            )
+            {
+                result = sessions;
+                return result;
+            }
+
+            foreach (RDPSessionInfo session in sessions)
+            {
+                if (argsRemoteSessions.UserName != null && !argsRemoteSessions.UserName.Contains(session.UserName))
+                {
+                    continue;
+                }
+                if (argsRemoteSessions.SessionState != null && !argsRemoteSessions.SessionState.Contains(session.State.ToString()))
+                {
+                    continue;
+                }
+                if (argsRemoteSessions.SessionID != null && !argsRemoteSessions.SessionID.Contains(session.ID))
+                {
+                    continue;
+                }
+                if (argsRemoteSessions.SessionName != null && !argsRemoteSessions.SessionName.Contains(session.SessionName))
+                {
+                    continue;
+                }
+                ExecutionGroupMembers.Add(session);
+            }
+
+            result = ExecutionGroupMembers;
+            return result;
+        }
+
+        // original methods
         private static System.DirectoryServices.DirectorySearcher Get_DomainSearcher(Args_Get_DomainSearcher args = null)
         {
             if (args == null) args = new Args_Get_DomainSearcher();
@@ -939,7 +1084,7 @@ namespace SharpView
                         {
                             IdentityFilter += $@"(objectsid={IdentityInstance})";
                         }
-                        else if (new Regex(@"^(CN|OU|DC)=").Match(IdentityInstance).Success)
+                        else if (new Regex(@"^(CN|DC|OU)=").Match(IdentityInstance).Success)
                         {
                             IdentityFilter += $@"(distinguishedname={IdentityInstance})";
                             if (args.Domain.IsNullOrEmpty() && args.SearchBase.IsNullOrEmpty())
@@ -4803,7 +4948,7 @@ namespace SharpView
                         foreach (var xor in args.XOR)
                         {
                             var PropertyName = xor.Key;
-                            var PropertyXorValue = (int)xor.Value;
+                            var PropertyXorValue = Convert.ToInt32(xor.Value);
                             Logger.Write_Verbose($@"[Set-DomainObject] XORing '{PropertyName}' with '{PropertyXorValue}' for object '{obj.Properties[@"samaccountname"][0]}'");
                             var TypeName = Entry.Properties[PropertyName][0].GetType();
 
@@ -5686,10 +5831,17 @@ namespace SharpView
                         var ous = Get_DomainOU(new Args_Get_DomainOU(CommonArguments) { SearchBase = OUName, LDAPFilter = "(gplink=*)" });
                         foreach (LDAPProperty ou in ous)
                         {
-                            var matches = ou.gplink.GetRegexGroups(@"(\{){0,1}[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}(\}){0,1}");
-                            foreach (Group match in matches)
+                            string pattern = @"(\{){0,1}[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}(\}){0,1}";
+                            Match match = Regex.Match(ou.gplink, pattern, RegexOptions.IgnoreCase);
+
+                            while (match.Success)
                             {
-                                GPOGuids.Add(match.Value);
+                                GroupCollection groupsCollection = match.Groups;
+                                foreach (Group group in groupsCollection)
+                                {
+                                    GPOGuids.Add(group.Value);
+                                }
+                                match = match.NextMatch();
                             }
                         }
                     }
@@ -5702,10 +5854,17 @@ namespace SharpView
                         var ous = Get_DomainSite(new Args_Get_DomainSite(CommonArguments) { Identity = new[] { ComputerSite }, LDAPFilter = "(gplink=*)" });
                         foreach (LDAPProperty ou in ous)
                         {
-                            var matches = ou.gplink.GetRegexGroups(@"(\{){0,1}[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}(\}){0,1}");
-                            foreach (Group match in matches)
+                            string pattern = @"(\{){0,1}[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}(\}){0,1}";
+                            Match match = Regex.Match(ou.gplink, pattern, RegexOptions.IgnoreCase);
+
+                            while (match.Success)
                             {
-                                GPOGuids.Add(match.Value);
+                                GroupCollection groupsCollection = match.Groups;
+                                foreach (Group group in groupsCollection)
+                                {
+                                    GPOGuids.Add(group.Value);
+                                }
+                                match = match.NextMatch();
                             }
                         }
                     }
@@ -5806,7 +5965,7 @@ namespace SharpView
                         {
                             IdentityFilter += $@"(objectsid={IdentityInstance})";
                         }
-                        else if (IdentityInstance.IsRegexMatch(@"^(CN|OU|DC)=.*"))
+                        else if (IdentityInstance.IsRegexMatch(@"^(CN|DC|OU)=.*"))
                         {
                             IdentityFilter += $@"(distinguishedname={IdentityInstance})";
                             if (args.Domain.IsNullOrEmpty() && args.SearchBase.IsNullOrEmpty())
@@ -7206,7 +7365,7 @@ namespace SharpView
                         NativeMethods.NetApiBufferFree(PtrInfo);
 
                         // try to extract out the machine SID by using the -500 account as a reference
-                        var MachineSid = (Members.FirstOrDefault(x => (x as LocalGroupMemberAPI).SID.IsRegexMatch(".*-500") || (x as LocalGroupMemberAPI).SID.IsRegexMatch(".*-501")) as LocalGroupMemberAPI).SID;
+                        var MachineSid = (Members.FirstOrDefault(x => (x as LocalGroupMemberAPI).SID.IsRegexMatch(".*-500") || (x as LocalGroupMemberAPI).SID.IsRegexMatch(".*-501")) as LocalGroupMemberAPI)?.SID;
                         if (MachineSid != null)
                         {
                             MachineSid = MachineSid.Substring(0, MachineSid.LastIndexOf('-'));

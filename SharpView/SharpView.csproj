@@ -75,10 +75,13 @@
     <Compile Include="Arguments\Args_Find_DomainUserEvent.cs" />
     <Compile Include="Arguments\Args_Find_DomainShare.cs" />
     <Compile Include="Arguments\Args_Find_DomainLocalGroupMember.cs" />
+    <Compile Include="Arguments\Args_Find_EntityHasFullControl.cs" />
     <Compile Include="Arguments\Args_Find_InterestingDomainShareFile.cs" />
     <Compile Include="Arguments\Args_Find_InterestingFile.cs" />
     <Compile Include="Arguments\Args_Find_LocalAdminAccess.cs" />
     <Compile Include="Arguments\Args_Find_DomainObjectPropertyOutlier.cs" />
+    <Compile Include="Arguments\Args_Get_ExecutionGroups.cs" />
+    <Compile Include="Arguments\Args_Get_RemoteSessions.cs" />
     <Compile Include="Arguments\Args_Invoke_Kerberoast.cs" />
     <Compile Include="Arguments\Args_Set_DomainUserPassword.cs" />
     <Compile Include="Arguments\Args_Add_DomainGroupMember.cs" />
